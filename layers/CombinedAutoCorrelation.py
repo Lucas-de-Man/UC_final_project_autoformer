@@ -1,4 +1,4 @@
-from AutoCorrelation import AutoCorrelation
+from layers.AutoCorrelation import AutoCorrelation
 import torch
 
 class CombinedAutoCorrelation(AutoCorrelation):
@@ -31,7 +31,8 @@ class CombinedAutoCorrelation(AutoCorrelation):
         res = q_fft * torch.conj(k_fft)
         corr = torch.fft.irfft(res, n=L, dim=-1)
 
-        periods = torch.arange(0, L)
+        # make sure we use the same device as the data it interacts with
+        periods = torch.arange(0, L, device=corr.get_device())
         period_map = torch.empty(L, dtype=int)
         # equal zero-frequency to anything to escape division by zero
         # we only have frequencies below the Nyquist frequency, period of 1 would map to freq L, which in turn maps to freq 1
@@ -39,8 +40,9 @@ class CombinedAutoCorrelation(AutoCorrelation):
         # we round to closest frequency fitting the period at this index
         period_map[2:] = ((L + 1/2) / periods[2:]).to(int)
 
-        # Spectral density if |fft(autocorr)|^2 / f, realised by doing res * torch.conj(res) / f
-        spect_dens = (res * torch.conj(res)).real
+        # Spectral density if |fft(autocorr)|^2 / f, we use |a+bi|^2=a^2+b^2
+        spect_dens = res.real ** 2 + res.imag ** 2
+
         # divide by f is equal to multiplying by the period / L, and we just aligned the spectral density to the periods
         corr = corr * spect_dens[:, :, :, period_map] * periods / L
 
