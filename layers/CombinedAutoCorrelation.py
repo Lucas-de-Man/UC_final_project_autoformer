@@ -41,8 +41,8 @@ class CombinedAutoCorrelation(AutoCorrelation):
 
         # Spectral density if |fft(autocorr)|^2 / f, realised by doing res * torch.conj(res) / f
         spect_dens = (res * torch.conj(res)).real
-        # divide by f is equal to multiplying by the period, and we just aligned the spectral density to the periods
-        corr = corr * spect_dens[:, :, :, period_map] * periods
+        # divide by f is equal to multiplying by the period / L, and we just aligned the spectral density to the periods
+        corr = corr * spect_dens[:, :, :, period_map] * periods / L
 
         # time delay agg
         if self.training:
@@ -54,4 +54,3 @@ class CombinedAutoCorrelation(AutoCorrelation):
             return (V.contiguous(), corr.permute(0, 3, 1, 2))
         else:
             return (V.contiguous(), None)
-    
